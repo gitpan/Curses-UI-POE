@@ -1,0 +1,13 @@
+CHANGES
+examples/demo-widgets
+examples/irc_client
+Makefile.PL
+MANIFEST			This list of files
+MANIFEST.SKIP
+POE.pm
+t/base_classes.t
+t/dialog_classes.t
+t/language_classes.t
+t/widget_classes.t
+test.pl
+META.yml                                 Module meta-data (added by MakeMaker)
