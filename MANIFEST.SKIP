@@ -16,3 +16,5 @@
 \.patch$
 ^log$
 \.bak$
+\.tar\.gz$
+\.tgz$

@@ -23,15 +23,24 @@ use Exporter;
 use vars qw( @EXPORT );
 @EXPORT = qw( MainLoop );
 
-*VERSION = \0.01;
+*VERSION = \0.011;
 our $VERSION;
+
+sub MainLoop { 
+    unless ($Curses::UI::rootobject) {
+        die "MailLoop: Curses::UI::rootobject not created.";
+    }
+
+    $Curses::UI::rootobject->mainloop 
+}
 
 sub mainloop {
     my $this = shift;
 
-    $this->focus(undef, 1); # 1 = forced focus
-        $this->draw;
-    Curses::doupdate();
+    $this->focus(undef, 1);
+    $this->draw;
+
+    Curses::doupdate;
 
     POE::Session->create
         ( inline_states => {
@@ -90,7 +99,7 @@ It is designed to simply slide over Curses::UI.  Keeping the API the
 same and simply forcing Curses::UI to do all of its event handling
 via POE, instead of internal to itself.  This allows you to use POE
 behind the scenes for things like networking clients, without Curses::UI
-breaking your programs functionality.
+breaking your programs' functionality.
 
 =head1 TIMERS
 
@@ -105,17 +114,24 @@ the Curses::UI widget set and the POE Framework.
 
 =head1 BUGS
 
+Currently dialog's work but break POE, and cause Curses::UI to constantly
+poll.  Hopefully this will be fixed very soon.
+
 Find any?  Send them to me!  tag@cpan.org
 
 =head1 AUTHOR
 
-=head3 Original Author
+=over 2
+
+=item Original Author
 
 Rocco Caputo (rcaputo@cpan.org)
 
-=head3 Concept, Many Fixes, Current Maintainer
+=item Concept, Many Fixes, Current Maintainer
 
 Scott McCoy (tag@cpan.org)
+
+=back
 
 =cut
 

@@ -20,7 +20,6 @@ use Curses::UI::POE;
 # Create the root object.
 my $cui = new Curses::UI::POE ( 
     -clear_on_exit => 1, 
-    -debug => $debug,
 );
 
 # Demo index
@@ -864,5 +863,5 @@ $w{$current_demo}->focus;
 # Get things rolling...
 # ----------------------------------------------------------------------
 
-MainLoop;
+$cui->mainloop;
 
