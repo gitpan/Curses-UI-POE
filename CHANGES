@@ -1,5 +1,66 @@
 ------------------------------------------------------------------------
-rev 188:  tag | 2003-10-08 11:52:41 -0700 (Wed, 08 Oct 2003) | 2 lines
+r448 | tag | 2003-10-15 03:56:49 -0700 (Wed, 15 Oct 2003) | 3 lines
+
+Added inline states to the Curses::UI Constructor
+Reworked the Modality handling a little bit, optimizing it.
+
+------------------------------------------------------------------------
+r447 | tag | 2003-10-10 15:39:42 -0700 (Fri, 10 Oct 2003) | 3 lines
+
+Removed the recursive walk backward if we're in the root space...this
+should increase event handling efficiency
+
+------------------------------------------------------------------------
+r446 | tag | 2003-10-10 14:52:10 -0700 (Fri, 10 Oct 2003) | 15 lines
+
+Created internal Modal queue...this fixes some wierd problems we were having
+with Curses::UI's expectations of modal widgets.
+
+However it raises one concern with me, currently each event walks back the
+parent list to the top one (Given layers of modal focus stop its walk...
+        respectivley).  I feel this is slightly inefficient since it is
+not -always- needed.  But it will do until I figure out a better way.
+
+Ditched that tempdialog subroutine, forced all modal dialogs to use POE
+instead using a very similar method, redefining Curses::UI::Widget::modalfocus
+
+Made some documentation changes, cleaned up the code a little, pulled out
+depriciated things ("Running" global, etc) and probably did some other things
+that I dont remember.
+
+------------------------------------------------------------------------
+r445 | tag | 2003-10-10 12:43:18 -0700 (Fri, 10 Oct 2003) | 9 lines
+
+Removed the tempdialog subroutine, its currently commented out.
+
+Forced POE::Kernel to run on startup.
+
+Redfine Curses::UI::Widget::modalfocus with a POE::Loop hack that works
+as a reentrant into the POE::Kernel event loop.
+
+Placed session in constructor
+
+------------------------------------------------------------------------
+r444 | tag | 2003-10-10 06:43:28 -0700 (Fri, 10 Oct 2003) | 3 lines
+
+Fixed the dialog stuff...kinda, circumventing POE::Kernel...
+Rocco says this is bad
+
+------------------------------------------------------------------------
+r441 | tag | 2003-10-10 00:19:06 -0700 (Fri, 10 Oct 2003) | 4 lines
+
+Documentation update.
+New BUG found...but no solution to it :-(
+Fixed examples/demo-widgets        
+
+------------------------------------------------------------------------
+r428 | tag | 2003-10-08 11:59:31 -0700 (Wed, 08 Oct 2003) | 3 lines
+
+Added Curses::UI::POE distfiles, at Version 0.01, as first release.
+Added example irc client and the demo-widgets packaged with Curses::UI
+
+------------------------------------------------------------------------
+r427 | tag | 2003-10-08 11:52:41 -0700 (Wed, 08 Oct 2003) | 2 lines
 
 Added Curses::UI::POE to Repository.
 

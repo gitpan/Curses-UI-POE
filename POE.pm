@@ -14,63 +14,95 @@ use warnings FATAL => "all";
 use strict;
 
 use POE;
-use POSIX qw(fcntl_h);
+use POSIX qw( fcntl_h );
 use base qw( Curses::UI );
 use Curses::UI::Widget;
-use Exporter;
-use vars qw( @EXPORT );
-@EXPORT = qw( MainLoop );
 
 # Force POE::Kernel to have ran...stops my warnings...
 # We do it in a BEGIN so there can be no sessions prior
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.025;
+*VERSION = \0.027;
 our $VERSION;
+
+use constant TOP => -1;
+use constant PARENT => -2;
+use constant ROOT => 0;
 
 my @ModalObject;
 
+sub import {
+    my $caller = caller;
+
+    no strict "refs";
+
+    *{ $caller . "::MainLoop" } = \&MainLoop;
+    eval "package $caller; use POE;";
+}
+
 sub new { 
-    my $result = &Curses::UI::new(@_);
-    push @ModalObject, bless $result; 
+    my $RootObject = &Curses::UI::new(@_);
+    push @ModalObject, $RootObject; 
+
+    my ($class, %Options) = @_;
+
+    $Options{inline_states} ||= {};
 
     POE::Session->create
         ( inline_states => {
-            _start        => sub {
-                $_[KERNEL]->select(\*STDIN, "got_keystroke");
+            %{ $Options{inline_states} },
 
-                # Turn blocking back on for STDIN.  Some Curses implementations
-                # don't deal well with non-blocking STDIN.
+            _start  => sub {
+                $_[KERNEL]->select(\*STDIN, "-keyin");
+
+                # Turn blocking back on for STDIN.  Some Curses
+                # implementations don't deal well with non-blocking STDIN.
                 my $flags = fcntl STDIN, F_GETFL, 0 or die $!;
                 fcntl STDIN, F_SETFL, $flags & ~O_NONBLOCK or die $!;
 
-                set_read_timeout($ModalObject[-1]);
+                set_read_timeout($ModalObject[TOP]);
+
+                $Options{inline_states}{_start}(@_)
+                    if defined $Options{inline_states}{_start};
             },
 
-            got_keystroke => sub {
-                $ModalObject[-1]->root->do_one_event($ModalObject[-1]);
-                Curses::curs_set($ModalObject[0]->{-cursor_mode});
+            -keyin  => sub {
+                unless ($#ModalObject) {
+                    $RootObject->do_one_event($ModalObject[TOP]);
+                }
+                else {
+                    $ModalObject[TOP]->root->do_one_event($ModalObject[TOP]);
+                }
+                Curses::curs_set($ModalObject[ROOT]->{-cursor_mode});
             },
 
-            got_timer     => sub {
-                $ModalObject[-1]->do_timer;
-                Curses::curs_set($ModalObject[0]->{-cursor_mode});
+            -timer  => sub {
+                $ModalObject[TOP]->do_timer;
+                Curses::curs_set($ModalObject[ROOT]->{-cursor_mode});
 
-                set_read_timeout($ModalObject[-1]);
+                set_read_timeout($ModalObject[TOP]);
+            },
+
+            shutdown => sub {
+                $_[KERNEL]->select(\*STDIN);
             },
           },
+
+          heap => $RootObject,
         );
 
-     return $result;
+     $RootObject->{-no_output} = $Options{-no_output} || 0;
+
+     return $RootObject;
 }
 
 sub MainLoop { 
-    unless ($ModalObject[-1]) {
+    unless ($ModalObject[TOP]) {
         die "MailLoop: Curses::UI::rootobject not created.";
     }
 
-    $ModalObject[-1]->mainloop 
+    $ModalObject[TOP]->mainloop 
 }
 
 sub mainloop {
@@ -97,7 +129,7 @@ sub set_read_timeout {
             $new_timeout < $config->{-time};
     }
 
-    $poe_kernel->delay(got_timer => $new_timeout) if $new_timeout >= 0;
+    $poe_kernel->delay(-timer => $new_timeout) if $new_timeout >= 0;
 
     # Force the read timeout to be 0, so Curses::UI polls.
     $this->{-read_timeout} = 0;
@@ -138,7 +170,17 @@ Curses::UI::POE
 =head1 SYNOPSIS
 
  use Curses::UI::POE;
- my $cui = new Curses::UI::POE;
+
+ my $cui = new Curses::UI::POE inline_states => {
+     _start => sub {
+         $_[HEAP]->dialog("Hello!");
+     },
+
+     _stop => sub {
+         $_[HEAP]->dialog("Good bye!");
+     },
+ };
+
  $cui->mainloop
 
 =head1 INTRODUCTION
@@ -149,6 +191,36 @@ same and simply forcing Curses::UI to do all of its event handling
 via POE, instead of internal to itself.  This allows you to use POE
 behind the scenes for things like networking clients, without Curses::UI
 breaking your programs' functionality.
+
+=head1 ADDITIONS
+
+This is a list of distinct changes between the Curses::UI API, and the
+Curses::UI::POE API.  They should all be non-obstructive additions only,
+keeping Curses::UI::POE a drop-in replacement for Curses::UI.
+
+=head2 Constructor Options
+
+=over 2
+
+=item inline_states
+
+The inline_states constructor option allows insertion of inline states
+into the Curses::UI::POE controlling session.  Since Curses::UI::POE is
+implimented with a small session I figured it may be useful provide the
+ability to the controlling session for all POE to Interface interaction.
+
+While Curses::UI events are still seamlessly forced to use POE, this allows
+you to use it for a little bit more, such as catching responses from another
+POE component that should be directly connected with output.  (See the IRC
+client example).
+
+In this controlling session, however, the heap is predefined as the root
+Curses::UI object, which is a hash reference.  In the Curses::UI object,
+all private data is indexed by a key begining with "-".  So if you wish
+to use the heap to store other data, simply dont use the "-" hash index
+prefix to avoid conflicts.
+
+=back
 
 =head1 TIMERS
 
