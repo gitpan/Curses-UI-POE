@@ -36,6 +36,30 @@ $Curses = new Curses::UI::POE inline_states => {
         printf "Connection Successful!";
     },
 
+    irc_433 => sub {
+        my ($nick) = ($_[ARG1] =~ m/^(\S+)/);
+
+        $_[KERNEL]->post( IRC => nick => sprintf "%s_", $nick );
+
+        printf "--- %s in use, trying %s_", $nick, $nick;
+    },
+
+    irc_372 => sub {
+        print $_[ARG1];
+    },
+
+    irc_353 => sub {
+        local $_ = $_[ARG1];
+
+        s/^[^:]+://;
+        print;
+
+        for (m/(\S+)/g) {
+            s/\+|\@//;
+            $Curses->addnick($_);
+        }
+    },
+
     irc_quit => sub {
         my ($nick, $hostmask) = ($_[ARG0] =~ m/([^!]+)!(\S+)/);
 
@@ -46,12 +70,16 @@ $Curses = new Curses::UI::POE inline_states => {
         my ($nick, $hostmask) = ($_[ARG0] =~ m/([^!]+)!(\S+)/);
 
         printf "--- %s (%s) left %s", $nick, $hostmask, $_[ARG1];
+
+        $Curses->dropnick($nick);
     },
 
     irc_join => sub {
         my ($nick, $hostmask) = ($_[ARG0] =~ m/([^!]+)!(\S+)/);
 
         printf "--- %s (%s) joined %s", $nick, $hostmask, $_[ARG1];
+
+        $Curses->addnick($nick);
     },
 
     irc_public => sub {
@@ -86,16 +114,45 @@ use warnings FATAL => "all";
 use POSIX qw( strftime cuserid );
 use Curses;
 
+my @nicks;
+
+sub addnick {
+    my ($nicklist, $curses) = @{ +shift }{qw( -nicks -curses )};
+    my $nick = shift;
+
+    push @nicks, $nick;
+
+    $nicklist->values([sort @nicks]);
+    $nicklist->draw(1);
+
+    $curses->draw;
+}
+
+sub dropnick {
+    my ($nicklist, $curses) = @{ +shift }{qw( -nicks -curses )};
+    my $nick = shift;
+
+    @nicks = grep $nick ne $_, @nicks;
+    $nicklist->values([sort @nicks]);
+    $nicklist->draw(1);
+    $curses->draw;
+}
+
 sub PRINT { 
     our @Channel;
 
     my $object = shift;
     my ($viewer, $curses) = @$object{qw( -viewer -curses )};
 
-    shift @Channel if @Channel > 40;
     push @Channel, shift;
 
     $viewer->text(join "\n", @Channel);
+    $viewer->cursor_down(undef, $viewer->canvasheight);
+    $viewer->draw;
+
+#    $viewer->{-ypos} = @Channel;
+#    $viewer->layout_content;
+
     $curses->draw;
 }
 
@@ -105,15 +162,20 @@ sub PRINTF {
     my $object = shift;
     my ($viewer, $curses) = @$object{qw( -viewer -curses )};
 
-    shift @Channel if @Channel > 40;
     push @Channel, sprintf shift, @_;
 
     $viewer->text(join "\n", @Channel);
+    $viewer->cursor_down(undef, $viewer->canvasheight);
+    $viewer->draw;
+
+#    $viewer->{-ypos} = @Channel;
+#    $viewer->layout_content;
+
     $curses->draw;
 }
 
 sub TIEHANDLE { 
-    my $curses = pop;
+    my $curses = $_[-1];
 
     # Main Menu
     my $menu = $curses->add
@@ -137,27 +199,37 @@ sub TIEHANDLE {
     # Create the screen for the editor.
     my $screen = $curses->add
         ( 'screen', 'Window',
-          -padtop          => 1, # leave space for the menu
-          -border		 => 0,
-          -ipad		 => 0,
+          -padtop       => 1, # leave space for the menu
+          -border		=> 0,
+          -ipad		    => 0,
         );
 
     # We add the editor widget to this screen.
     my $viewer = $screen->add
-        ( 'editor', 'TextViewer',
-          -border 	 => 0,
-          -pos         => -1,
-          -sfg             => "blue",
-          -sbg             => "white",
-          -padtop		 => 0,	
-          -padbottom 	 => 2,
-          -showlines	 => 0,
-          -sbborder	 => 0,
-          -vscrollbar	 => 1,
-          -hscrollbar	 => 0,
-          -showhardreturns => 0,
-          -wrapping        => 1,
+        ( 'viewer', 'TextViewer',
+          -border 	        => 0,
+          -pos              => -1,
+          -sfg              => "blue",
+          -sbg              => "white",
+          -padright         => 11,
+          -padtop		    => 0,	
+          -padbottom 	    => 2,
+          -showlines	    => 0,
+          -sbborder	        => 0,
+          -vscrollbar	    => 1,
+          -hscrollbar	    => 0,
+          -showhardreturns  => 0,
+          -wrapping         => 1,
         );
+
+    my $nicks = $screen->add
+        ( 'nicks', 'Listbox',
+          -x            => -1,
+          -y            => -1,
+          -padtop       => 0,
+          -padbottom    => 2,
+          -width        => 10,
+          -radio        => 0 );
 
     # There is no need for the editor widget to loose focus, so
     # the "loose-focus" binding is disabled here. This also enables the
@@ -168,21 +240,22 @@ sub TIEHANDLE {
         ( 'help', 'Label',
           -y 	 	        => -2,
           -width		    => -1,
-          -reverse 	    => 1,
-          -paddingspaces  => 1,
-          -fg             => "blue",
-          -bg             => "white",
-          -text 	 	  => strftime("[%h:%m]", localtime),
+          -reverse 	        => 1,
+          -paddingspaces    => 1,
+          -fg               => "blue",
+          -bg               => "white",
+          -text 	 	    => strftime("[%h:%m]", localtime),
         );
 
     my $editor = $screen->add
-        ( undef, 'TextEditor',
+        ( "editor", 'TextEditor',
           -y              => -1,
           -x              => 0,
           -width          => -1,
           -height         => 1,
           -singleline     => 1,
         );
+
 
     my (%Channel, $Current, @History);
     my ($CurCon, $CurrentChannel);
@@ -198,11 +271,11 @@ sub TIEHANDLE {
 
             POE::Kernel->post
                 ( IRC => connect => {
-                    Nick    => cuserid,
-                    Server  => $server,
-                    Port    => $port,
-                    Username=> cuserid,
-                    Ircname => +(getpwnam cuserid)[6],
+                    Nick        => cuserid,
+                    Server      => $server,
+                    Port        => $port,
+                    Username    => cuserid,
+                    Ircname     => +(getpwnam cuserid)[6],
                   } 
                 ); 
         },
@@ -266,18 +339,19 @@ sub TIEHANDLE {
     }, KEY_ENTER;
 
     set_binding $editor sub { shift->text($History[--$Current]) }, KEY_UP;
-    set_binding $editor sub { 
+    set_binding $editor sub {
         $Current++;
         if ($Current > @History)    { shift->text("") }
         else                        { shift->text( $History[$Current] ) }
     }, KEY_DOWN;
 
-    bless { 
+    $_[-1] = bless { 
         -curses => $curses,
         -viewer => $viewer,
         -screen => $screen,
         -editor => $editor,
         -menu   => $menu,
+        -nicks  => $nicks,
     }, shift;
 }
 

@@ -23,7 +23,7 @@ use Curses::UI::Widget;
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.027;
+*VERSION = \0.0272;
 our $VERSION;
 
 use constant TOP => -1;
@@ -62,6 +62,8 @@ sub new {
                 fcntl STDIN, F_SETFL, $flags & ~O_NONBLOCK or die $!;
 
                 set_read_timeout($ModalObject[TOP]);
+
+                $_[HEAP] = $RootObject;
 
                 $Options{inline_states}{_start}(@_)
                     if defined $Options{inline_states}{_start};
@@ -266,9 +268,12 @@ Rocco has helped in an astronomical number of ways.  He helped me work out
 a number of issues (including how to do this in the first place) and atleast
 half the code if not more came from his fingertips.
 
+=head1 MAINTAINER
+
 =item Scott McCoy (tag@cpan.org)
 
-This was my stupid idea.  Its working out quite well though.
+This was my stupid idea.  I also got to maintain it, although the original
+code (some of which may or may not still exist) came from Rocco.
 
 =back
 
