@@ -1,11 +1,11 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Curses-UI-POE
-version:      0.028
+version:      0.02801
 version_from: POE.pm
 installdirs:  site
 requires:
-    Curses::UI:                    0.75
+    Curses::UI:                    0.93
     POE:                           0.11
 
 distribution_type: module

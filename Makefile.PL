@@ -15,7 +15,7 @@ WriteMakefile
     PM           => { 'POE.pm' => '$(INST_LIBDIR)/POE.pm' },
     PREREQ_PM    => { 
         'POE'        => 0.11,
-        'Curses::UI' => 0.75,
+        'Curses::UI' => 0.93,
     },
     dist         =>
     { COMPRESS   => 'gzip -9f',

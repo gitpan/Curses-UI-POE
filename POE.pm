@@ -1,7 +1,7 @@
 # Copyright 2003 by Scott McCoy.  All rights reserved.  Released under
 # the same terms as Perl itself.
 #
-# Portios Copyright 2003 by Rocco Caputo.  All rights reserved.  Released 
+# Portions Copyright 2003 by Rocco Caputo.  All rights reserved.  Released 
 # under the same terms as Perl itself.
 #
 # Portions Copyright 2001-2003 by Maurice Makaay and/or Marcus
@@ -23,7 +23,7 @@ use Curses::UI::Widget;
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.028;
+*VERSION = \0.02801;
 our $VERSION;
 
 use constant TOP => -1;
