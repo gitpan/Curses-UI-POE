@@ -23,24 +23,15 @@ use Exporter;
 use vars qw( @EXPORT );
 @EXPORT = qw( MainLoop );
 
-*VERSION = \0.011;
+*VERSION = \0.020;
 our $VERSION;
 
-sub MainLoop { 
-    unless ($Curses::UI::rootobject) {
-        die "MailLoop: Curses::UI::rootobject not created.";
-    }
+# This is our hook into the Curses::UI Constructor.  We make it do what
+# it would normally do, but we make it create our session as well since
+# it will only be called from the end of the Curses::UI object, generally.
 
-    $Curses::UI::rootobject->mainloop 
-}
-
-sub mainloop {
-    my $this = shift;
-
-    $this->focus(undef, 1);
-    $this->draw;
-
-    Curses::doupdate;
+sub new { 
+    my $result = Curses::UI->new(@_);
 
     POE::Session->create
         ( inline_states => {
@@ -59,10 +50,31 @@ sub mainloop {
           },
         );
 
+    return bless $result, "Curses::UI::POE";
+}
+
+# Session is created in global space so just dialog only applications will work.
+
+sub MainLoop { 
+    unless ($Curses::UI::rootobject) {
+        die "MailLoop: Curses::UI::rootobject not created.";
+    }
+
+    $Curses::UI::rootobject->mainloop 
+}
+
+sub mainloop {
+    my $this = shift;
+
+    $this->focus(undef, 1);
+    $this->draw;
+
+    Curses::doupdate;
+
     run POE::Kernel;
 }
 
-sub set_read_timeout() {
+sub set_read_timeout {
     my $this = shift;
 
     my $new_timeout = -1;
@@ -80,6 +92,43 @@ sub set_read_timeout() {
     # Force the read timeout to be 0, so Curses::UI polls.
     $this->{-read_timeout} = 0;
     return $this;
+}
+
+# The tempdialog does this modalfocus in Curses::UI::Widget which
+# starts a secondary event loop.  I need to force use of POE. 
+
+sub tempdialog {
+    my $this = shift;
+    my $class = shift;
+    my %args = @_;
+
+    my $id = "__window_$class";
+
+    my $dialog = $this->add($id, $class, %args);
+
+    $dialog->{-has_modal_focus} = 1;
+
+    $dialog->focus;
+    $dialog->draw;
+
+    # Do individual pieces of the POE Event loop without the whole thing...
+    # just for a bit...  Also stop that warning.
+    while ( $dialog->{-has_modal_focus} ) {
+        $poe_kernel->loop_do_timeslice;
+    }
+
+    my $return = $dialog->get;
+
+    $dialog->{-focus} = 0;
+
+    $this->delete($id);
+    $this->root->focus(undef, 1);
+
+    unless ($POE::Kernel::kr_run_warning) {
+        $POE::Kernel::kr_run_warning |= POE::Kernel::KR_RUN_SESSION;
+    }
+
+    return $return;
 }
 
 =head1 NAME
@@ -107,6 +156,14 @@ The undocumented Curses::UI timers ($cui->timer) will still work, and
 they will be translated into POE delays.  I would suggest not using them,
 however, as POE's internal alarms and delays are far more robust.
 
+=head1 DIALOGS
+
+The Curses::UI::POE dialog methods contain thier own miniature event loop,
+similar to the way Curses::UI's dialog methods worked.  However instead
+of blocking and polling on readkeys, it incites its own custom miniature
+POE Event loop until the dialog has completed, and then its result is
+returned as per the Curses::UI specifications.
+
 =head1 SEE ALSO
 
 L<POE>, L<Curses::UI>.  Use of this module requires understanding of both
@@ -114,8 +171,12 @@ the Curses::UI widget set and the POE Framework.
 
 =head1 BUGS
 
-Currently dialog's work but break POE, and cause Curses::UI to constantly
-poll.  Hopefully this will be fixed very soon.
+The Hello world examples, and other programs that use ONLY the Curses::UI
+dialogs and no Curses::UI mainloop, currently cause a warning from POE
+stating that POE::Kernel's run method was never called.  However, dialogs
+work in and out of Curses::UI's mainloop, and use POE instead of blocking.
+
+Hopefully that warning will be fixed soon.
 
 Find any?  Send them to me!  tag@cpan.org
 
