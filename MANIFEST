@@ -1,14 +1,40 @@
 CHANGES
+examples/color_editor
+examples/demo-add
+examples/demo-buttonbox
+examples/demo-color
+examples/demo-cuml
+examples/demo-language
 examples/demo-widgets
+examples/editor
+examples/hello_world
 examples/irc_client
+examples/mouse_focustest
+examples/pop3_reader
+examples/tutorial
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
+META.yml			Module meta-data (added by MakeMaker)
 POE.pm
+t/01base_classes.t
+t/02widget_classes.t
+t/03dialog_classes.t
+t/04language_classes.t
+t/06ui.t
+t/07widget.t
+t/08common.t
+t/09label.t
+t/10texteditor.t
+t/11listbox.t
+t/12gpm_handler.t
+t/98misc.t
+t/99template.t
 t/base_classes.t
 t/dialog_classes.t
+t/fakelib/Curses.pm
 t/language_classes.t
+t/lorem.pl
 t/session.t
 t/widget_classes.t
 test.pl
-META.yml                                 Module meta-data (added by MakeMaker)

@@ -23,7 +23,7 @@ use Curses::UI::Widget;
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.0272;
+*VERSION = \0.028;
 our $VERSION;
 
 use constant TOP => -1;
@@ -71,12 +71,17 @@ sub new {
 
             -keyin  => sub {
                 unless ($#ModalObject) {
-                    $RootObject->do_one_event($ModalObject[TOP]);
+                    $RootObject->do_one_event;
                 }
                 else {
                     $ModalObject[TOP]->root->do_one_event($ModalObject[TOP]);
                 }
                 Curses::curs_set($ModalObject[ROOT]->{-cursor_mode});
+
+#                if (my $key = $_[HEAP]->get_key(0)) {
+#                    $RootObject->feedkey($key) unless $key eq '-1';
+#                    $RootObject->do_one_event;
+#                }
             },
 
             -timer  => sub {
@@ -167,7 +172,7 @@ sub set_read_timeout {
 
 =head1 NAME
 
-Curses::UI::POE
+Curses::UI::POE - A subclass makes Curses::UI POE Friendly.
 
 =head1 SYNOPSIS
 

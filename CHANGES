@@ -1,67 +1,38 @@
 ------------------------------------------------------------------------
-r448 | tag | 2003-10-15 03:56:49 -0700 (Wed, 15 Oct 2003) | 3 lines
+r14 | tag | 2004-06-23 15:22:19 -0700 (Wed, 23 Jun 2004) | 3 lines
 
-Added inline states to the Curses::UI Constructor
-Reworked the Modality handling a little bit, optimizing it.
-
-------------------------------------------------------------------------
-r447 | tag | 2003-10-10 15:39:42 -0700 (Fri, 10 Oct 2003) | 3 lines
-
-Removed the recursive walk backward if we're in the root space...this
-should increase event handling efficiency
+Curses-UI-POE/blib: Removed (Generated)
+Curses-UI-POE/Makefile: Removed (Generated)
 
 ------------------------------------------------------------------------
-r446 | tag | 2003-10-10 14:52:10 -0700 (Fri, 10 Oct 2003) | 15 lines
+r13 | tag | 2004-06-23 15:21:23 -0700 (Wed, 23 Jun 2004) | 11 lines
 
-Created internal Modal queue...this fixes some wierd problems we were having
-with Curses::UI's expectations of modal widgets.
-
-However it raises one concern with me, currently each event walks back the
-parent list to the top one (Given layers of modal focus stop its walk...
-        respectivley).  I feel this is slightly inefficient since it is
-not -always- needed.  But it will do until I figure out a better way.
-
-Ditched that tempdialog subroutine, forced all modal dialogs to use POE
-instead using a very similar method, redefining Curses::UI::Widget::modalfocus
-
-Made some documentation changes, cleaned up the code a little, pulled out
-depriciated things ("Running" global, etc) and probably did some other things
-that I dont remember.
+Curses-UI-POE/POE.pm:
+    - Updated version
+    - Removed feedkey (dubious)
+Curses-UI-POE/t/language_classes.t:
+    - Adjusted for accurate number of tests
+Curses-UI-POE/blib:     REMOVE THIS (Generated)
+Curses-UI-POE/Makefile: REMOVE THIS (Generated)
+Curses-UI-POE/examples:
+    - Added examples from Curses::UI 0.93
+    - demo-cuml doesn't function properly
 
 ------------------------------------------------------------------------
-r445 | tag | 2003-10-10 12:43:18 -0700 (Fri, 10 Oct 2003) | 9 lines
+r12 | tag | 2004-06-23 11:29:13 -0700 (Wed, 23 Jun 2004) | 6 lines
 
-Removed the tempdialog subroutine, its currently commented out.
-
-Forced POE::Kernel to run on startup.
-
-Redfine Curses::UI::Widget::modalfocus with a POE::Loop hack that works
-as a reentrant into the POE::Kernel event loop.
-
-Placed session in constructor
+Curses-UI-POE/POE.pm:
+    - Added double-event call for feedkey case to accomidate for Curses::UI
+      mainloop changes
+    - Feedkey system is slightly less POE friendly and causes a minor delay
+      but I didn't see an obvious way to get entirely around it
 
 ------------------------------------------------------------------------
-r444 | tag | 2003-10-10 06:43:28 -0700 (Fri, 10 Oct 2003) | 3 lines
+r6 | tag | 2004-06-22 03:25:13 -0700 (Tue, 22 Jun 2004) | 5 lines
 
-Fixed the dialog stuff...kinda, circumventing POE::Kernel...
-Rocco says this is bad
-
-------------------------------------------------------------------------
-r441 | tag | 2003-10-10 00:19:06 -0700 (Fri, 10 Oct 2003) | 4 lines
-
-Documentation update.
-New BUG found...but no solution to it :-(
-Fixed examples/demo-widgets        
-
-------------------------------------------------------------------------
-r428 | tag | 2003-10-08 11:59:31 -0700 (Wed, 08 Oct 2003) | 3 lines
-
-Added Curses::UI::POE distfiles, at Version 0.01, as first release.
-Added example irc client and the demo-widgets packaged with Curses::UI
-
-------------------------------------------------------------------------
-r427 | tag | 2003-10-08 11:52:41 -0700 (Wed, 08 Oct 2003) | 2 lines
-
-Added Curses::UI::POE to Repository.
+modules:
+    - Added all my mostly functional modules from my old repository
+    - Left out ones that I wish never existed or will never get close to doing
+      because they are too useless or deprecated by another module of mine
 
 ------------------------------------------------------------------------
