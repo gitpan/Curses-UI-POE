@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Curses-UI-POE
-version:      0.02801
+version:      0.03
 version_from: POE.pm
 installdirs:  site
 requires:
@@ -9,4 +9,4 @@ requires:
     POE:                           0.11
 
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.17
+generated_by: ExtUtils::MakeMaker version 6.30_01

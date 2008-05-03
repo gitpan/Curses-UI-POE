@@ -1,38 +1,7 @@
 ------------------------------------------------------------------------
-r14 | tag | 2004-06-23 15:22:19 -0700 (Wed, 23 Jun 2004) | 3 lines
+r13 | scottmc | 2006-04-04 23:52:04 -0700 (Tue, 04 Apr 2006) | 3 lines
 
-Curses-UI-POE/blib: Removed (Generated)
-Curses-UI-POE/Makefile: Removed (Generated)
-
-------------------------------------------------------------------------
-r13 | tag | 2004-06-23 15:21:23 -0700 (Wed, 23 Jun 2004) | 11 lines
-
-Curses-UI-POE/POE.pm:
-    - Updated version
-    - Removed feedkey (dubious)
-Curses-UI-POE/t/language_classes.t:
-    - Adjusted for accurate number of tests
-Curses-UI-POE/blib:     REMOVE THIS (Generated)
-Curses-UI-POE/Makefile: REMOVE THIS (Generated)
-Curses-UI-POE/examples:
-    - Added examples from Curses::UI 0.93
-    - demo-cuml doesn't function properly
-
-------------------------------------------------------------------------
-r12 | tag | 2004-06-23 11:29:13 -0700 (Wed, 23 Jun 2004) | 6 lines
-
-Curses-UI-POE/POE.pm:
-    - Added double-event call for feedkey case to accomidate for Curses::UI
-      mainloop changes
-    - Feedkey system is slightly less POE friendly and causes a minor delay
-      but I didn't see an obvious way to get entirely around it
-
-------------------------------------------------------------------------
-r6 | tag | 2004-06-22 03:25:13 -0700 (Tue, 22 Jun 2004) | 5 lines
-
-modules:
-    - Added all my mostly functional modules from my old repository
-    - Left out ones that I wish never existed or will never get close to doing
-      because they are too useless or deprecated by another module of mine
+''Added old perl modules''
+'''Starting to think maybe I should structure the new repository differently'''
 
 ------------------------------------------------------------------------
