@@ -23,7 +23,7 @@ use Curses::UI::Widget;
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.034;
+*VERSION = \0.033;
 our $VERSION;
 
 use constant TOP => -1;
@@ -99,16 +99,6 @@ sub init {
     # If we're in a dialog, then the TOP modal object is more appropriate than
     # $self, although if we're not in a dialog $self is what this actually is.
     set_read_timeout($modal_objects[TOP]);
-
-    # When gpm_mouse isn't enabled, sometimes there is extra garbage during
-    # startup.  We ignore that garbage during construction, assuming that since
-    # the UI isn't rendered yet (we're still creating the root object!) the
-    # input must not matter.
-    unless ($Curses::UI::gpm_mouse) {
-       while (my $key = $_[HEAP]->get_key(0) != -1) {
-           # ignoring stdin garbage at startup
-       }
-    }
 
     # Unmask...
     $self->{__start_callback}(@_)

@@ -7,13 +7,14 @@ use warnings FATAL => "all";
 
 use POE qw( Component::IRC );
 use Curses::UI::POE;
+use Carp;
 
 my $Curses;
 
 $Curses = new Curses::UI::POE inline_states => {
     _start => sub {
         $_[HEAP]->{irc} =
-            POE::Component::IRC->spawn();
+            POE::Component::IRC->spawn( alias => "IRC" );
 
         # Even if we dont use all events, it shouldn't create an error since
         # POE::Component::IRC politely (as well as inefficiently) routes all of
@@ -21,12 +22,18 @@ $Curses = new Curses::UI::POE inline_states => {
         # don't exist will quietly be ignored...since this is an irc client
         # efficiency *really* isn't a big issue here.
 
-        $_[KERNEL]->yield(register => "all");
+        $_[KERNEL]->post(IRC => register => "all");
 
     },
 
     irc_connected => sub {
-        printf "Connected to %s", $_[SENDER]->get_heap->server_name();
+        my $server_name = $_[ SENDER ]->get_heap->server_name;
+        unless (defined $server_name) {
+            print "Connected...";
+        }
+        else {
+            print "Connected to %s", $server_name;
+        }
     },
 
     irc_snotice => sub {
@@ -65,6 +72,8 @@ $Curses = new Curses::UI::POE inline_states => {
         my ($nick, $hostmask) = ($_[ARG0] =~ m/([^!]+)!(\S+)/);
 
         printf "--- %s (%s) quit \"%s\"", $nick, $hostmask, $_[ARG1];
+
+        $Curses->dropnick($nick);
     },
 
     irc_part => sub {
@@ -103,6 +112,17 @@ $Curses = new Curses::UI::POE inline_states => {
 tie *CURWIN, "IRC::Output", $Curses;
 select CURWIN;
 
+
+open LOG, ">>", "cuirc-debug.log";
+
+# Try to put errors in the window...
+$SIG{"__DIE__"} = sub {
+    print LOG $_[0];
+};
+$SIG{"__WARN__"} = sub {
+    print LOG $_[0];
+};
+
 print "Welcome to Curses::UI::POE's IRC example";
 
 run POE::Kernel;
@@ -115,6 +135,8 @@ use warnings FATAL => "all";
 use POE;
 use POSIX qw( strftime cuserid );
 use Curses;
+use Carp qw( carp );
+use constant KEY_TAB => "\t";
 
 my @nicks;
 
@@ -164,6 +186,11 @@ sub PRINTF {
     my $object = shift;
     my ($viewer, $curses) = @$object{qw( -viewer -curses )};
 
+    # XXX Hack: Just ignore bunk requests for now...
+    if (grep !defined $_, @_) {
+        carp "Attempt to print undefined value";
+    }
+
     push @Channel, sprintf shift, @_;
 
     $viewer->text(join "\n", @Channel);
@@ -192,7 +219,7 @@ sub TIEHANDLE {
             },
             { -label => 'Help', 
               -submenu => [
-                { -label => 'About editor', -value => \&about_dialog }
+                { -label => 'about', -value => \&about_dialog }
               ]
             }, 
           ]
@@ -258,6 +285,14 @@ sub TIEHANDLE {
           -singleline     => 1,
         );
 
+    my $set_editor_focus = sub {
+        $editor->focus;
+        $editor->draw;
+    };
+
+    $nicks->onFocus($set_editor_focus);
+    $viewer->onFocus($set_editor_focus);
+    $menu->onFocus($set_editor_focus);
 
     my (%Channel, $Current, @History);
     my ($CurCon, $CurrentChannel);
@@ -271,8 +306,8 @@ sub TIEHANDLE {
 
             printf "Sending Connect EVENT for %s:%s", $server, $port;
 
-            $_[KERNEL]->yield
-                ( connect => {
+            $poe_kernel->post
+                ( IRC => connect => {
                     Nick        => cuserid,
                     Server      => $server,
                     Port        => $port,
@@ -290,21 +325,21 @@ sub TIEHANDLE {
             }
             else {
                 $Channel{$Join} = 1;
-                $_[KERNEL]->yield( join => $Join );
+                $poe_kernel->post( IRC => join => $Join );
                 $CurrentChannel = $Join;
             }
         },
 
-        nick => sub { $_[KERNEL]->yield( nick => $_[1] ) },
-        kick => sub { $_[KERNEL]->yield( kick => $_[1..$#_] ) },
-        msg  => sub { $_[KERNEL]->yield( privmsg => $_[1..$#_] ) },
+        nick => sub { $poe_kernel->post( IRC => nick => $_[1] ) },
+        kick => sub { $poe_kernel->post( IRC => kick => @_[1..$#_] ) },
+        msg  => sub { $poe_kernel->post( IRC => privmsg => @_[1..$#_] ) },
         
         quote => sub {
-            $_[KERNEL]->yield( sl => join " ", @_[1..$#_] );
+            $poe_kernel->post( IRC => sl => join " ", @_[1..$#_] );
         },
 
         quit => sub {
-            $_[KERNEL]->yield( quit => join " ", @_[1..$#_] );
+            $poe_kernel->post( IRC => quit => join " ", @_[1..$#_] );
 
             print "Have a nice day";
             exit;
@@ -331,7 +366,7 @@ sub TIEHANDLE {
         }
         else {
             if ($CurrentChannel) {
-                $_[KERNEL]->yield( privmsg => $CurrentChannel, $line );
+                $poe_kernel->post( IRC => privmsg => $CurrentChannel, $line );
                 print "> $line";
             }
             else {
@@ -340,12 +375,33 @@ sub TIEHANDLE {
         }
     }, KEY_ENTER;
 
+    set_binding $editor sub {
+        # Do nothing...overload the lose-focus event.
+    }, KEY_TAB, KEY_BTAB;
+
+    # Why doesn't this work?
+    set_binding $editor sub {
+        warn "Calling \$viewer->cursor_pageup";
+        $viewer->cursor_pageup;
+        $viewer->draw;
+    }, KEY_PPAGE;
+
+    set_binding $editor sub {
+        warn "Calling \$viewer->cursor_pagedown";
+        $viewer->cursor_pagedown;
+        $viewer->draw;
+    }, KEY_NPAGE;
+
     set_binding $editor sub { shift->text($History[--$Current]) }, KEY_UP;
     set_binding $editor sub {
         $Current++;
         if ($Current > @History)    { shift->text("") }
         else                        { shift->text( $History[$Current] ) }
     }, KEY_DOWN;
+
+    # Focus on the editor.
+    $editor->focus;
+    $editor->draw;
 
     $_[-1] = bless { 
         -curses => $curses,
