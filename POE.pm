@@ -23,7 +23,7 @@ use Curses::UI::Widget;
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.034;
+*VERSION = \0.035;
 our $VERSION;
 
 use constant TOP => -1;
@@ -104,11 +104,7 @@ sub init {
     # startup.  We ignore that garbage during construction, assuming that since
     # the UI isn't rendered yet (we're still creating the root object!) the
     # input must not matter.
-    unless ($Curses::UI::gpm_mouse) {
-       while (my $key = $_[HEAP]->get_key(0) != -1) {
-           # ignoring stdin garbage at startup
-       }
-    }
+    $self->flushkeys;
 
     # Unmask...
     $self->{__start_callback}(@_)
@@ -132,32 +128,19 @@ sub _clear_modal_callback {
 sub keyin {
     my ($self, $kernel) = @_[ OBJECT, KERNEL ];
 
-    unless ($#modal_objects) {
-        $self->do_one_event;
-    }
-    else {
-        # dispatch the event to the top-most modal object, or the root.
-        $self->do_one_event($modal_objects[TOP]);
 
-# I didn't originally do this here, I'm not quite sure what I'm up to...
-#
-#   # If this is a callback modal focus widget, and we lost modal focus,
-#   # execute the callback an clear the level in the stack.
-#       $self->_clear_modal_callback 
-#           unless $modal_objects[TOP]->{-has_modal_focus};
+    until ((my $key = $self->get_key(0)) eq -1) {
+        $self->feedkey($key);
 
-# This other wierdness seems unnecessary.
-#       $top_object->root->do_one_event($top_object);
+        unless ($#modal_objects) {
+            $self->do_one_event;
+        }
+        else {
+            # dispatch the event to the top-most modal object, or the root.
+            $self->do_one_event($modal_objects[TOP]);
+        }
     }
 
-    # This is a while so it will cycle and attempt to read in any key events...
-    # There appears to be some kind of gpm related bug which occurs under
-    # certain situations (rt #19681, #25021)
-    while (my $key = $self->get_key(0)) {
-        $self->feedkey($key) unless $key eq "-1";
-        $self->do_one_event;
-    }
- 
     # Set the root cursor mode
     unless ($self->{-no_output}) {
         Curses::curs_set($self->{-cursor_mode});
@@ -178,11 +161,6 @@ sub timer {
     }
 
     set_read_timeout($top_object);
-
-# Looks like older versions didn't support callbackmodalfocus, whatever that
-# is.
-# I'm not sure what the deal is with the callbackmodalfocus shit...
-#   $self->_clear_modal_callback unless $top_object->{-has_modal_focus};
 }
 
 sub shutdown {

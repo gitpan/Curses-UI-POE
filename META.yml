@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Curses-UI-POE
-version:             0.034
+version:             0.035
 abstract:            A subclass that forces Curses::UI to use POE
 license:             ~
 author:              
