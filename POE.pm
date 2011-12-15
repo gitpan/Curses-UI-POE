@@ -23,7 +23,7 @@ use Curses::UI::Widget;
 # to our calling this unless somebody is being really, really bad.
 BEGIN { run POE::Kernel }
 
-*VERSION = \0.035;
+*VERSION = \0.040;
 our $VERSION;
 
 use constant TOP => -1;
@@ -384,7 +384,11 @@ Rocco has helped in an astronomical number of ways.  He helped me work out
 a number of issues (including how to do this in the first place) and atleast
 half the code if not more came from his fingertips.
 
+=back
+
 =head1 MAINTAINER
+
+=over 2
 
 =item Scott McCoy (tag@cpan.org)
 
